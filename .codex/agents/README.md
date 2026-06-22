@@ -38,6 +38,33 @@
 | `banking-reviewer` | 残高更新、元帳、取引履歴、取消不能性、監査可能性、冪等性など銀行システムとしての妥当性をレビューする。 | `read-only` | 不可 |
 | `final-report-writer` | 人間の最終レビュー用に変更内容、採択理由、リスク、未解決事項、確認ポイントを短く整理する。 | `workspace-write` | 不可 |
 
+## Repo-local skills
+
+OpenAI Codex の公式 Skills ドキュメントでは、skill は `SKILL.md` を持つディレクトリで、必要に応じて `references/`、`scripts/`、`assets/`、`agents/openai.yaml` を持てると説明されています。また、repo 共通で使う skill は `.agents/skills` に置けるため、このプロジェクトでは subagent と 1:1 で対応する repo-local skill を `.agents/skills/<skill-name>/` に配置します。
+
+公開されている人気の agent / skill 事例からは、本文をコピーせず、次の設計パターンだけを採用します。
+
+- 1 skill / 1 agent の狭い責務。
+- `description` に具体的な trigger と境界を前方配置する progressive disclosure。
+- planner / analyst / reviewer / implementer / reporter の責務分離。
+- reviewer は読み取り専用、implementer は accepted scope のみ実装する権限分離。
+- 金融リスク、セキュリティ、コード品質、元帳品質を別観点でレビューする分割。
+
+| Agent | 対応 skill | 用途 |
+| --- | --- | --- |
+| `product-planner` | `.agents/skills/banking-product-planning` | MVP、機能候補、保留候補、人間確認事項を整理する。 |
+| `domain-analyst` | `.agents/skills/banking-domain-analysis` | 銀行ドメイン用語、状態遷移、業務モデルの不整合を確認する。 |
+| `risk-analyst` | `.agents/skills/banking-risk-analysis` | 二重送金、残高不整合、競合更新、監査欠落などの事故リスクを洗い出す。 |
+| `architecture-analyst` | `.agents/skills/banking-architecture-analysis` | Go、PostgreSQL、トランザクション、API、レイヤード設計を評価する。 |
+| `ai-review-board` | `.agents/skills/banking-review-board` | 各提案を採択、却下、保留に分類し、accepted scope を作る。 |
+| `implementer` | `.agents/skills/scoped-banking-implementation` | accepted scope だけを小さく実装し、隣接改善を避ける。 |
+| `code-reviewer` | `.agents/skills/banking-code-review` | コード品質、責務分離、テスト不足、Goらしさをレビューする。 |
+| `security-reviewer` | `.agents/skills/banking-security-review` | 認証、認可、入力検証、秘密情報、SQL injection、監査証跡をレビューする。 |
+| `banking-reviewer` | `.agents/skills/banking-ledger-review` | 残高更新、元帳、取引履歴、取消不能性、冪等性をレビューする。 |
+| `final-report-writer` | `.agents/skills/banking-final-report` | 人間の最終レビュー用に変更、リスク、未解決事項を整理する。 |
+
+各 subagent の `developer_instructions` には、対応 skill のパスを明記しています。subagent を呼び出すときは、必要に応じて `$banking-risk-analysis` のように明示指定するか、agent の責務に合う作業を依頼して暗黙選択させます。
+
 ## 推奨ワークフロー
 
 1. `product-planner` が改善案と MVP 候補を出す。

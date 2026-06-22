@@ -1,0 +1,3 @@
+display_name: Banking Review Board
+short_description: 提案統合・採択判断・accepted scope 作成 for this bank-system subagent.
+default_prompt: Use $banking-review-board for the matching bank-system workflow.

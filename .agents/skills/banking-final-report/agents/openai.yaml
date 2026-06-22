@@ -1,0 +1,3 @@
+display_name: Banking Final Report
+short_description: 人間向け最終レビュー資料作成 for this bank-system subagent.
+default_prompt: Use $banking-final-report for the matching bank-system workflow.

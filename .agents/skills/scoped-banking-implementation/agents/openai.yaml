@@ -1,0 +1,3 @@
+display_name: Scoped Banking Implementation
+short_description: 採択済み scope のみを安全に実装 for this bank-system subagent.
+default_prompt: Use $scoped-banking-implementation for the matching bank-system workflow.
