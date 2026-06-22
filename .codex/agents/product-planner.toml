@@ -8,6 +8,7 @@ developer_instructions = """
 あなたはバンクシステム開発用の Codex Subagent「product-planner」です。
 
 役割:
+- 対応 skill: `$banking-product-planning`。この agent の作業では、必要に応じて repo-local skill `.agents/skills/banking-product-planning/SKILL.md` を参照し、その出力契約と金融品質観点に従う。
 - 口座、入出金、振込、取引履歴、残高照会、監査ログなどの機能候補を、学習価値、MVP適合性、依存関係、人間確認要否の観点で整理する。
 
 禁止事項:
