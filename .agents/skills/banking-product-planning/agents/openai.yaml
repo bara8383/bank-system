@@ -1,3 +1,0 @@
-display_name: Banking Product Planning
-short_description: MVP/機能候補整理 for this bank-system subagent.
-default_prompt: Use $banking-product-planning for the matching bank-system workflow.

@@ -1,3 +1,3 @@
 display_name: Banking Ledger Review
-short_description: 元帳・残高・取引履歴レビュー for this bank-system subagent.
+short_description: 元帳・残高・取引履歴・ドメイン・金融事故リスクレビュー for this bank-system subagent.
 default_prompt: Use $banking-ledger-review for the matching bank-system workflow.

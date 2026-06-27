@@ -8,10 +8,10 @@
 
 ## 入力
 
-- product-planner の提案:
-- domain-analyst の評価:
-- risk-analyst の評価:
-- architecture-analyst の評価:
+- planner の提案:
+- code-reviewer の評価:
+- security-reviewer の評価:
+- banking-reviewer の評価:
 - 参照した既存ドキュメント:
 
 ## 判断結果

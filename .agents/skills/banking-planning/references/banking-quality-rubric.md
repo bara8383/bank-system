@@ -21,7 +21,6 @@
 
 ## 公開 skill / agent 事例から採用する設計パターン
 - 説明文は短く具体的な trigger を前方に置く。
-- 1 skill / 1 agent は狭い責務にする。
-- レビュー系 skill は読み取り、根拠、影響、推奨に集中し、直接修正しない。
-- 実装系 skill は accepted scope を先に再確認し、隣接改善を実装しない。
+- reviewer は直接修正せず、根拠、影響、推奨、次サイクル planner への入力に集中する。
+- implementer は accepted scope を先に再確認し、隣接改善を実装しない。
 - 最終報告は未解決事項と人間確認事項を隠さない。

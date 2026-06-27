@@ -1,3 +1,0 @@
-display_name: Banking Domain Analysis
-short_description: 銀行業務概念・用語・状態遷移の分析 for this bank-system subagent.
-default_prompt: Use $banking-domain-analysis for the matching bank-system workflow.

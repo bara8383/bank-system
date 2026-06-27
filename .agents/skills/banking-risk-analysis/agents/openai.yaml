@@ -1,3 +1,0 @@
-display_name: Banking Risk Analysis
-short_description: 金融事故・運用リスク分析 for this bank-system subagent.
-default_prompt: Use $banking-risk-analysis for the matching bank-system workflow.

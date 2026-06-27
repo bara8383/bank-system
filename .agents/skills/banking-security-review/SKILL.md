@@ -1,19 +1,20 @@
 ---
 name: banking-security-review
-description: 金融系セキュリティレビュー for the bank-system Codex subagent `security-reviewer`. Use when that subagent or a user needs this repository-specific workflow for Go/PostgreSQL mini banking work, including scope control, auditability, idempotency, transaction integrity, and Japanese review outputs.
+description: 金融系セキュリティレビュー for the bank-system Codex subagent `security-reviewer`. Use when reviewing repo-wide or implementation-diff security under docs/ai/cycles/<cycle-id>/security-reviewer.md.
 ---
 
 # Banking Security Review
 
 ## 目的
 
-`security-reviewer` に対応する repo-local skill として、バンクシステム開発で繰り返す「金融系セキュリティレビュー」を一定品質で実行する。公開されている高評価の skill / agent 事例からは、本文のコピーではなく、狭い責務、明確な trigger、progressive disclosure、出力契約、権限分離の設計パターンだけを取り入れる。
+`security-reviewer` に対応する repo-local skill として、バンクシステム開発で繰り返す「金融系セキュリティレビュー」を一定品質で実行する。repo 全体または直近実装差分をレビューし、次サイクル planner への入力を残す。
 
 ## 最初に読むもの
 
 1. `git status --short` を確認し、ユーザー作業や他 agent 作業を壊さない。
 2. `docs/START_HERE.md`、関連する `docs/*.md`、存在する場合は `docs/ai/output/human/*.md` を必要最小限読む。
-3. 詳細な金融品質観点が必要なら `references/banking-quality-rubric.md` を読む。
+3. `docs/ai/cycles/` 配下の同一 cycle 成果物を確認し、実装差分があれば差分レビュー、なければ repo 全体レビューを行う。
+4. 詳細な金融品質観点が必要なら `references/banking-quality-rubric.md` を読む。
 
 ## ワークフロー
 
@@ -25,9 +26,9 @@ description: 金融系セキュリティレビュー for the bank-system Codex s
 
 ## 出力契約
 
-出力ファイルは `docs/ai/output/security-reviewer/001-[title].md` 形式で作成する。連番は既存ファイルを確認して次の番号にする。
+出力ファイルは `docs/ai/cycles/<cycle-id>/security-reviewer.md` とする。
 
-出力は原則として次の区分を使う: 重大度、攻撃/事故シナリオ、該当箇所、影響、推奨対策、人間確認要否。
+出力は原則として次の区分を使う: Finding、根拠、影響、推奨修正、次サイクル planner への入力。必要に応じて重大度、攻撃/事故シナリオ、人間確認要否を含める。
 
 ## 禁止事項
 
@@ -35,4 +36,4 @@ description: 金融系セキュリティレビュー for the bank-system Codex s
 - 金融仕様やリスク受容を人間確認なしに最終確定しない。
 - 役割外の実装、レビュー、採択判断を兼務しない。
 - accepted scope 外の隣接改善を勝手に追加しない。
-- `docs/ai/output/security-reviewer/` 以外へ書き込まない。
+- `docs/ai/cycles/<cycle-id>/security-reviewer.md` 以外へ書き込まない。
