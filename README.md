@@ -18,7 +18,7 @@
 go run ./cmd/server
 ```
 
-サーバー起動後、別のターミナルから次を実行できます。
+既定では `127.0.0.1:8080` で待ち受けます。サーバー起動後、別のターミナルから次を実行できます。
 
 ```bash
 curl http://localhost:8080/healthz
@@ -29,6 +29,16 @@ curl http://localhost:8080/healthz
 ```json
 {"status":"ok"}
 ```
+
+## listen address の変更
+
+既定の `127.0.0.1:8080` はローカル開発で意図せず外部公開しないための設定です。コンテナ実行などで外部 interface から到達させたい場合は、明示的に環境変数を指定します。
+
+```bash
+BANK_SYSTEM_HTTP_ADDR=:8080 go run ./cmd/server
+```
+
+外部 interface で待ち受ける場合は、将来の業務 API 追加前に認証・認可・公開範囲を確認してください。`/healthz` は固定レスポンスのみを返し、環境変数、DB 接続情報、秘密情報、内部パスは返しません。
 
 ## テスト方法
 
