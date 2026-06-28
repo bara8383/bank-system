@@ -1,6 +1,6 @@
 name = "implementer"
 description = "planner が docs/ai/cycles/<cycle-id>/planner.md に出した accepted scope だけを小さく安全に実装する workspace-write agent。"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 nickname_candidates = ["Implementer", "Scoped Builder"]
 

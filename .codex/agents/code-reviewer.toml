@@ -1,6 +1,6 @@
 name = "code-reviewer"
 description = "Go/PostgreSQL/設計/保守性/テストを repo 全体または直近実装差分で確認し、docs/ai/cycles/<cycle-id>/code-reviewer.md に出力する reviewer。"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 nickname_candidates = ["Code Reviewer", "Maintainability Reviewer"]
 

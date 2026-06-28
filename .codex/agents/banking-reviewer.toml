@@ -1,6 +1,6 @@
 name = "banking-reviewer"
 description = "残高、元帳、取引履歴、冪等性、状態遷移、金融事故リスクを repo 全体または直近実装差分で確認し、docs/ai/cycles/<cycle-id>/banking-reviewer.md に出力する reviewer。"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 nickname_candidates = ["Banking Reviewer", "Ledger Reviewer"]
 
