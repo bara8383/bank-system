@@ -1,160 +1,148 @@
-# code-reviewer レビュー結果: 2026-06-28-001
+# code-reviewer review: 2026-06-28-001
 
 ## レビュー種別
 
-- 種別: repo 全体レビュー
-- 理由: `git status --short` で作業ツリーに実装差分がなく、`docs/ai/cycles/2026-06-28-001/` 配下にも同一 cycle の implementer 成果物がまだ存在しないため。
-- 対象: 現時点のリポジトリ全体。実装コードはまだ存在せず、設計ドキュメントと agent/cycle 運用定義を中心に確認した。
+- 種別: repo-wide review
+- 理由: `git status --short` と `git diff --stat` に実装差分がなく、同一 cycle の `implementer.md` も `blocked: accepted scope not found` と記録しているため。
+- 対象: 現在の repo 全体。実装済みコードは Go 標準ライブラリのみの最小 HTTP server と `/healthz` handler。PostgreSQL、migration、業務 API、認証認可、残高更新、取引履歴、監査ログは未実装。
+- 確認した入力: `.codex/agents/README.md`、`docs/ai/cycles/README.md`、`.agents/skills/banking-code-review/SKILL.md`、`README.md`、`AGENTS.md`、`docs/START_HERE.md`、主要 `docs/*.md`、同一 cycle の planner / implementer / security-reviewer / banking-reviewer 成果物。
+- テスト: `go test ./...` を試行したが、この環境では `/bin/bash: line 1: go: command not found` となり未実行。
 
-## 前提と制約
+## 全体所見
 
-- このプロジェクトは学習用ミニバンキングシステムであり、本番金融システム相当の完全性は要求しない。
-- ソースコード変更は禁止のため、本レビューでは実装修正を行わず、次サイクル planner への入力として課題を整理する。
-- 現時点では Go / PostgreSQL の実装、migration、テストコードが存在しないため、コードレベルのバグ検出ではなく、実装開始前の設計・保守性リスクを中心に評価する。
+現在の Go 実装は、`cmd/server/main.go` と `internal/httpapi/router.go` に責務が分かれており、`main` へ handler を直書きしていない。`/healthz` は固定 JSON のみを返し、DB 接続情報や秘密情報を返さない。現時点の実装範囲に対して、Go の構成・依存最小化・テスト容易性に大きなコード品質問題は見つからなかった。
 
-## Finding 1: 実装の最初の縦切りが未定義で、全機能を同時に始めるリスクがある
+一方で、次に DB や業務 API へ進む前に解消すべき設計・運用上のリスクがある。特に cycle 成果物と現在 repo の実態が食い違っている点、Go テストをこの環境で実行できない点、PostgreSQL トランザクション境界とロック方針がまだ実装可能な粒度に落ちていない点は、次サイクル planner の入力にするべきである。
+
+## Finding 1: 同一 cycle 成果物が現在 repo の実態と食い違っている
 
 - 重大度: Medium
+- 人間確認要否: なし
 
 ### 根拠
 
-- MVP はユーザー登録、認証、顧客登録、口座作成、入金、出金、振込、残高照会、取引履歴照会、監査ログ記録までを含んでいる。
-- `docs/START_HERE.md` には実装順の候補があるが、次に実装する最小単位・完了条件・対象外を cycle 単位で固定する成果物はまだ存在しない。
-- 現在のリポジトリには Go module、API エントリポイント、DB migration、テストがまだない。
+- `docs/ai/cycles/2026-06-28-001/implementer.md:5` は `planner.md` が存在せず accepted scope を確認できなかったとしている。
+- 同ファイル `docs/ai/cycles/2026-06-28-001/implementer.md:13` は、コード・設計文書・README の実装変更を行わなかったと記録している。
+- 一方で現在の repo には `go.mod`、`cmd/server/main.go`、`internal/httpapi/router.go`、各テスト、`README.md` が存在する。
+- `docs/ai/cycles/2026-06-28-001/planner.md:21` と `docs/ai/cycles/2026-06-28-001/planner.md:26` も、Go ソースや `go.mod` が存在しない前提で記録されている。
 
 ### 影響
 
-- implementer が MVP 全体を一度に実装しようとすると、認証、口座、取引、監査、冪等性、DB トランザクションが同時に絡み、レビュー可能な差分が大きくなる。
-- 学習用プロジェクトの「小さく実装する」方針に反し、トランザクション境界や責務分離の失敗を早期に発見しにくくなる。
+次サイクル planner が同一 cycle の Markdown 成果物をそのまま信じると、「実装なし」「README なし」と誤認し、既に存在する最小 HTTP server を再作成する scope や、現状と合わないレビュー入力を作る可能性がある。並列 cycle の連携を Markdown 成果物だけに限定する運用では、成果物の鮮度不一致は実装重複や不要な差分の原因になる。
 
 ### 推奨修正
 
-- 次 cycle の planner は、最初の accepted scope を「プロジェクト土台 + 顧客/口座の最小読み書き」または「入金だけの縦切り」など、1つの業務フローに限定する。
-- accepted scope には、実装する API、DB table、migration、テスト、実装しない機能を明記する。
-- 最初から振込まで入れず、DB トランザクションと監査ログの基本形を小さい処理で確立してから拡張する。
+次サイクル planner は、過去 cycle 成果物を読む際に必ず現在の `git status`、`rg --files`、`README.md`、Go ソースの存在を再確認し、古い cycle 成果物の「実装なし」記録を現在状態として扱わない。必要なら次 cycle の planner 出力で「2026-06-28-001 の implementer 成果物は現在 repo と不一致」と明記する。
 
 ### 次サイクル planner への入力
 
-- `go.mod`、アプリケーション起動点、PostgreSQL migration の置き場所、テスト実行方法を含む最小スケルトンを accepted scope 候補にする。
-- ただし、振込・冪等性・認証本実装まで同一 scope に含めない。
+- accepted scope を作る前に、現在 repo の実装済み範囲を再棚卸しする。
+- 「最小 Go REST API 土台」は既に存在する前提で、重複実装ではなく次の小さな改善に進む。
+- 古い cycle 成果物と現 repo の不一致を human notes または planner の入力レビューに記録する。
 
-## Finding 2: データモデル案はあるが、PostgreSQL 制約・インデックス・トランザクション時のロック方針が未具体化
+## Finding 2: Go テスト実行環境が不足しており、`go test ./...` を確認できない
+
+- 重大度: Medium
+- 人間確認要否: なし
+
+### 根拠
+
+- `README.md:43` から `README.md:47` は `go test ./...` をテスト方法として案内している。
+- `go.mod:3` は `go 1.24` を指定している。
+- 本レビュー環境で `go test ./...` を実行したところ、`go` コマンドが存在せず未実行だった。
+
+### 影響
+
+現時点のコードは小さいが、今後 PostgreSQL、残高更新、振込、冪等性、監査ログが入ると、テスト実行不能は金融品質上の大きな盲点になる。特に DB トランザクションや並行更新はレビューだけで担保できず、自動テストが実行できる環境が必要になる。また Go バージョンの導入方法が repo 内にないため、開発者や subagent ごとに検証可否がばらつく。
+
+### 推奨修正
+
+次サイクルで、実装変更に入る前または同時に Go ツールチェーン前提を明文化する。最低限、README または docs に必要な Go version、インストール前提、`go test ./...` が通る環境を記録する。CI を導入できるなら、最小の `go test ./...` を実行する workflow を追加する。
+
+### 次サイクル planner への入力
+
+- accepted scope 候補: 「Go テスト実行環境の前提を README/docs に明記し、可能なら CI で `go test ./...` を実行する」
+- 人間確認事項: CI を導入してよいか。導入する場合、GitHub Actions 等の利用可否を確認する。
+
+## Finding 3: 次の業務 API 実装前に、PostgreSQL トランザクション境界とロック方針が未確定
 
 - 重大度: High
+- 人間確認要否: 一部あり
 
 ### 根拠
 
-- `docs/data-model.md` は `accounts.balance_amount >= 0`、`transactions.amount > 0`、`transfer_requests.idempotency_key` の一意性などを制約案として挙げている。
-- 一方で、PostgreSQL の具体的な `CHECK`、`UNIQUE`、`FOREIGN KEY`、検索 index、残高更新時の `SELECT ... FOR UPDATE` または条件付き `UPDATE` の方針は未定義である。
-- `docs/design-principles.md` は振込の原子性を求めているが、実装時の repository / transaction manager / isolation level の設計はまだない。
+- `README.md:57` は PostgreSQL 接続、DB schema、migration、transaction 処理が未実装であると明記している。
+- `docs/design-principles.md` は、残高非負、残高変更ごとの取引履歴、振込の原子性、冪等性を原則としている。
+- `docs/data-model.md` は `accounts.balance_amount >= 0`、`transactions.amount > 0`、`transfer_requests.idempotency_key` の一意性を制約案としている。
+- しかし、PostgreSQL の `CHECK` / `UNIQUE` / `FOREIGN KEY`、出金・振込時の `SELECT ... FOR UPDATE` または条件付き `UPDATE`、複数口座ロック順序、repository へ transaction を渡す方式はまだ具体化されていない。
 
 ### 影響
 
-- アプリケーション層だけで残高非負や冪等性を守る実装になると、並行実行時に残高がマイナスになる、同じ振込が二重処理される、取引履歴と残高が不整合になるリスクが残る。
-- DB 制約が後付けになると、既存データ移行やテスト修正の負担が増える。
+次に入金・出金・振込 API を実装する際、handler や service が「残高を読む、Go 側で判定する、後で更新する」という形になると、同時出金や同時振込で lost update や過剰出金が発生し得る。DB 制約を後付けにすると、既存データとの整合、migration、テスト修正のコストも上がる。
 
 ### 推奨修正
 
-- 初回 migration 作成時点で、最低限次を DB 制約として入れる。
-  - `accounts.account_number` の一意制約。
-  - `accounts.balance_amount >= 0` の `CHECK` 制約。
-  - `transactions.amount > 0` の `CHECK` 制約。
-  - `transfer_requests.amount > 0` の `CHECK` 制約。
-  - `transfer_requests` の冪等性キーに対するスコープ付き一意制約。
-- 残高更新は、Go の service 層から DB transaction を開始し、repository に transaction context を渡す形にする。
-- 出金・振込の残高競合について、口座行ロックまたは条件付き更新のどちらを採るかを設計判断として docs に残す。
+業務 API 実装前に、PostgreSQL 前提の最小トランザクション方針を docs に固定する。出金・振込は、対象口座行を transaction 内でロックしてから残高判定・更新する方式、または `balance_amount >= amount` を条件にした単一 `UPDATE` の更新件数で成功判定する方式のどちらかを選ぶ。振込では振込元・振込先のロック順序を口座 ID 昇順などに固定し、DB 制約として残高非負、金額正数、冪等性キー一意制約を初回 migration に含める。
 
 ### 次サイクル planner への入力
 
-- accepted scope に migration の具体制約を含める。
-- 並行出金をまだ実装しない場合でも、残高更新 API の設計で transaction boundary を後から差し替えられるようにする。
+- accepted scope 候補: 「PostgreSQL 残高更新・振込トランザクション方針を設計文書へ追加する」
+- accepted scope 候補: 「初期 migration 方針として `CHECK`、`UNIQUE`、`FOREIGN KEY`、主要 index を具体化する」
+- 人間確認事項: DB migration ツール、ID 型、冪等性キーの一意スコープ、口座番号採番方針。
 
-## Finding 3: 監査ログが「業務処理と同一トランザクションか、失敗時も残すか」の方針未決定
+## Finding 4: 業務 API 向けのエラー応答形式と handler 境界が未定義
 
 - 重大度: Medium
+- 人間確認要否: なし
 
 ### 根拠
 
-- 設計原則とセキュリティメモは重要操作の成功・失敗を監査ログに残す方針を示している。
-- 入金、出金、振込などのユースケースでも成功・失敗ログが言及されている。
-- しかし、失敗監査ログを業務 DB transaction の内側で書くか、ロールバック後に別 transaction で書くか、書き込み失敗時に業務処理を失敗させるかは未定義である。
+- `internal/httpapi/router.go:14` から `internal/httpapi/router.go:24` の `/healthz` handler は現状の範囲では十分小さい。
+- ただし unsupported method では `internal/httpapi/router.go:17` で `http.Error` を使い、plain text のエラーを返している。
+- 業務 API で必要になる入力不正、認証失敗、認可失敗、残高不足、冪等性キー衝突、DB 障害の分類と JSON エラー形式はまだ定義されていない。
 
 ### 影響
 
-- 業務 transaction 内に監査ログを書くだけだと、業務処理をロールバックしたとき失敗ログも消える可能性がある。
-- 逆に監査ログの永続化失敗で業務処理を止める設計にすると、可用性と監査完全性のトレードオフが実装ごとにばらつく。
-- 後から監査方針を変えると、service 層のエラーハンドリングとテスト全体に影響する。
+このまま業務 handler を増やすと、handler ごとにエラー本文、HTTP status、ログ出力、監査用 failure reason の扱いがばらつきやすい。金融系では、利用者向けには安全なエラーを返しつつ、運用調査・監査には十分な分類を残す必要がある。エラー分類が遅れると、テストも status code と body の期待値を後から大きく直すことになる。
 
 ### 推奨修正
 
-- 学習用 MVP として、まずは「成功した残高変更の取引履歴は同一 transaction 内で必須」「失敗監査ログはロールバック後に可能な限り別 transaction で記録」など、明示的な暫定方針を決める。
-- 監査ログ書き込み失敗時の扱いを、人間確認事項として分離する。
-- service 層の戻り値に、利用者向けエラーと監査用 failure reason を分ける設計を検討する。
+業務 API を追加する前に、最小の API エラー標準を決める。例として、JSON の共通エラー envelope、業務エラー種別、HTTP status 対応、利用者向け message と内部ログ/監査用 reason の分離を定義する。`/healthz` は固定レスポンスのままでよいが、業務 API では共通 error writer を使う境界を作る。
 
 ### 次サイクル planner への入力
 
-- 監査ログを初回実装に含める場合、成功ログ・失敗ログ・ロールバック時の扱いを accepted scope に明記する。
-- 監査ログを次回以降に回す場合でも、service interface に actor / request metadata を渡せる余地を残す。
+- accepted scope 候補: 「REST API のエラー応答形式、エラー分類、handler/service 境界を docs に追加する」
+- 次の実装 scope で業務 API を作る場合、共通 error writer とテストを最初に含める。
 
-## Finding 4: Go のレイヤード構成・エラー分類・テスト境界がまだ決まっていない
+## Finding 5: 現在の最小 HTTP server 自体には大きなコード品質問題は見つからない
 
-- 重大度: Medium
+- 重大度: Info
+- 人間確認要否: なし
 
 ### 根拠
 
-- `.codex/agents/code-reviewer.toml` は Go/PostgreSQL、トランザクション境界、レイヤード設計、テスト容易性をレビュー対象にしている。
-- `docs/test-strategy.md` は単体・結合・セキュリティ・データ整合性テストの観点を整理している。
-- ただし、Go package 構成、domain/service/repository/http handler の責務、エラー型、テストで DB を使う範囲はまだ決まっていない。
+- `cmd/server/main.go:26` から `cmd/server/main.go:39` で設定読み取りが分離されている。
+- `cmd/server/main.go:41` から `cmd/server/main.go:49` で `http.Server` 生成が分離され、timeout が設定されている。
+- `internal/httpapi/router.go:8` から `internal/httpapi/router.go:11` で router 生成が `main` から分離されている。
+- `internal/httpapi/router_test.go` と `cmd/server/main_test.go` に handler と server config のテストがある。
+- 外部依存はなく、現時点では DB・認証・業務 API を暗黙に確定していない。
 
 ### 影響
 
-- handler が直接 SQL と業務ルールを持つ実装になると、認可・残高更新・監査ログの責務が混ざり、金融系で重要な異常系テストが書きにくくなる。
-- エラー分類が曖昧だと、残高不足・権限不足・入力不正・DB 障害を API レスポンスや監査ログで安全に出し分けにくい。
+現在のスコープでは、過剰な抽象化や不要な外部依存は見当たらない。次の機能追加時にこの小ささを維持し、handler に SQL や金融業務ルールを直接入れないことが重要である。
 
 ### 推奨修正
 
-- 最初の実装前に、最小の package 方針を決める。
-  - 例: `cmd/api`、`internal/domain`、`internal/application`、`internal/adapter/http`、`internal/adapter/postgres`。
-- 業務ルールは service/application 層に置き、HTTP handler は認証済み actor の取り出し、入力検証、レスポンス変換に寄せる。
-- 予期される業務エラーと内部エラーを Go の型または sentinel error で分類し、テスト対象にする。
+現状の `main` / `httpapi` 分離は維持する。次に業務 API を追加する場合は、HTTP handler、application/service、repository/postgres の責務を分け、DB transaction を application/service 層で制御できる形にする。
 
 ### 次サイクル planner への入力
 
-- accepted scope に package layout とエラー分類の最小ルールを含める。
-- 最初の機能は unit test と PostgreSQL integration test のどちらで検証するかを明記する。
-
-## Finding 5: テスト戦略は十分だが、実行可能なテスト基盤がまだない
-
-- 重大度: Medium
-
-### 根拠
-
-- `docs/test-strategy.md` は金額計算、残高更新、取引履歴、監査ログ、振込原子性、冪等性、認証認可を重要テスト対象として整理している。
-- 現時点で `go test ./...` を実行できる Go module やテストファイルは存在しない。
-- PostgreSQL を使う結合テストの起動方法や test database の管理方法も未定義である。
-
-### 影響
-
-- 実装が先行すると、残高競合や冪等性の不具合を手動確認に頼る期間が長くなる。
-- DB transaction を伴う処理は単体テストだけでは品質を保証しにくく、結合テストの導入が遅れるほどリファクタリングコストが上がる。
-
-### 推奨修正
-
-- 最初の Go 実装と同時に `go test ./...` が通る状態を作る。
-- PostgreSQL integration test は、初回から全機能を対象にせず、migration 適用と 1 つの残高変更フローに絞る。
-- CI 未導入でも、README または docs にローカルテストコマンドを記録する。
-
-### 次サイクル planner への入力
-
-- accepted scope に「実行可能なテストコマンド」を必ず含める。
-- DB が必要なテストを入れる場合は、Docker Compose などの開発用 DB 起動方法も scope に含めるか、明示的に次回以降へ回す。
+- 次の accepted scope では、現在の最小構成を壊さず、1 つの設計文書化または 1 つの小さな縦切りに限定する。
+- 業務ロジックを `internal/httpapi` に寄せすぎない package 方針を先に決める。
 
 ## 人間確認事項
 
-1. MVP 初回実装は「認証なしの内部 API で口座・入金の土台を作る」のか、「認証基盤を先に作る」のか。セキュリティ観点では認証が重要だが、学習の縦切りとしては口座・入金から始める選択もあり得る。
-2. 監査ログ書き込みに失敗した場合、業務処理を失敗させるか、業務処理を優先して別途アラート扱いにするか。
-3. PostgreSQL integration test のために Docker Compose を導入してよいか。
-
-## 総評
-
-現時点のドキュメントは、金融システム学習に必要な用語、MVP 範囲、設計原則、データモデル、セキュリティ、テスト観点を広く整理できている。一方で、実装コードがまだないため、次に重要なのは MVP 全体を一括実装することではなく、Go/PostgreSQL の最小スケルトン、DB 制約、transaction boundary、テストコマンドを小さい accepted scope に落とすことである。
+1. CI を導入して `go test ./...` を機械的に確認してよいか。
+2. PostgreSQL migration ツールを何にするか。
+3. 残高更新方式を、行ロック方式と条件付き `UPDATE` 方式のどちらで学習・実装するか。
+4. 冪等性キーの一意スコープを `requested_by_user_id` 基準、`source_account_id` 基準、または別の組み合わせにするか。

@@ -2,167 +2,191 @@
 
 ## repo現状
 
-### 作業開始時に確認したもの
-
-- `git status --short`: 作業開始時点では未コミット変更なし。
-- README: `README.md` / `README*` は存在しない。AGENTS.md は README 最新化を求めているが、今回のユーザー指示により出力先は本ファイルのみに限定されるため README 作成・更新は行わない。
-- `AGENTS.md`: 学習用の銀行・金融システムであり、Go + REST + PostgreSQL を前提とする。ただし他の技術は未定義。
-- `docs/START_HERE.md`: ミニバンキングシステムの段階的な進め方と、最初のゴールとして顧客登録、口座作成、入金、出金、振込、残高・取引履歴照会、監査ログを扱う方針を確認。
-- `docs/mvp.md`: MVP 機能、異常系、対象外機能、完了条件を確認。
-- `docs/domain-model.md`: 顧客、ログインユーザー、口座、残高、取引、振込依頼、監査ログなどの用語定義を確認。
-- `docs/data-model.md`: `users`、`customers`、`accounts`、`transactions`、`transfer_requests`、`audit_logs` の初期テーブル候補と制約案を確認。
-- `docs/use-cases.md`: UC-001 から UC-008 までの正常系・異常系を確認。
-- `docs/design-principles.md`: 金額整数、残高非負、取引履歴、監査ログ、認証認可、原子性、冪等性、状態遷移を確認。
-- `docs/security-notes.md`: 認証、認可、監査、秘密情報、入力検証、今後検討対策を確認。
-- `docs/test-strategy.md`: 金額・残高更新、取引履歴、監査ログ、異常系、原子性、冪等性、認証認可を重視する方針を確認。
-- `docs/ai/cycles/README.md`: cycle artifact protocol と並列ルールを確認。
-- `docs/ai/output/README.md`: human notes の置き場を確認。現時点で `docs/ai/output/human/` は存在しない。
-- 既存 cycle: `docs/ai/cycles/README.md` のみで、過去 cycle の planner / implementer / reviewer 出力は未確認。前 cycle のレビュー未反映事項は存在しない扱い。
-- 既存コード: Go ソース、`go.mod`、migration、SQL、API handler、service/usecase、repository、テストは見つからない。実装はまだ開始前。
-- TODO/FIXME: 明示的な TODO/FIXME は見つからない。`AGENTS.md` と `docs/START_HERE.md` に、技術スタック詳細や実装順が未定義・未着手であることが示されている。
+- `git status --short`: 作業開始時点では出力なし。既存の未コミット変更は確認されなかった。
+- `.codex/agents/README.md`: planner は repo 現状、reviewer 出力、未実装領域から改善案を作り、同一 cycle の `planner.md` に accepted scope を残す。implementer は同一 cycle の accepted scope だけを実装する。
+- `docs/ai/cycles/README.md`: 成果物は `docs/ai/cycles/<cycle-id>/` 配下の Markdown で同期し、agent 同士は直接同期しない。
+- `AGENTS.md`: 学習用の銀行・金融システム。Go + REST + PostgreSQL を前提に、小さく実装し、設計判断は docs に記録する。
+- `README.md`: 現在の実装範囲は Go 標準ライブラリのみの最小 REST API server と `GET /healthz`。DB、認証、業務 API、監査ログ、冪等性キー処理は未実装。
+- `docs/START_HERE.md` / `docs/mvp.md`: MVP は顧客登録、口座作成、入金、出金、振込、残高・取引履歴照会、監査ログを安全に扱うことを目指す。
+- `docs/domain-model.md` / `docs/data-model.md`: 顧客、ユーザー、口座、残高、取引、振込依頼、監査ログ、`users`、`customers`、`accounts`、`transactions`、`transfer_requests`、`audit_logs` の初期案がある。
+- `docs/design-principles.md`: 金額整数、残高非負、取引履歴追記、監査ログ、認証認可、振込原子性、冪等性、状態遷移を原則としている。
+- `docs/use-cases.md`: 入金、出金、振込では、口座状態、権限、正の整数金額、残高不足、冪等性、ロールバックが重要。
+- `docs/security-notes.md`: 認証、認可、監査、秘密情報、個人情報、入力検証の基本方針がある。
+- `docs/test-strategy.md`: 金額計算、残高更新、取引履歴、監査ログ、異常系、振込原子性、冪等性、認証認可を重点テスト対象としている。
+- human notes: `docs/ai/output/human/` は存在せず、追加の人間メモは確認できなかった。
+- 既存コード: `go.mod`、`cmd/server/main.go`、`cmd/server/main_test.go`、`internal/httpapi/router.go`、`internal/httpapi/router_test.go` がある。`/healthz` は固定 JSON のみを返し、server は `127.0.0.1:8080` 既定、`BANK_SYSTEM_HTTP_ADDR` override、HTTP timeout を持つ。
+- TODO/FIXME: 明示的な `TODO` / `FIXME` は見つからない。未定義事項は docs と cycle reviewer 出力に記録されている。
 
 ### 実装済み
 
-- 実装済みのアプリケーションコード、DB schema、migration、テストはなし。
-- AI subagent / cycle 運用に関するドキュメントと agent 定義は存在する。
+- 最小 Go module と HTTP server。
+- `GET /healthz`、unsupported method の `405`、固定レスポンスの unit test。
+- server listen address と timeout の unit test。
+- README の現状、起動方法、テスト方法、未実装範囲。
 
 ### 設計済みだが未実装
 
-- MVP の業務機能: ユーザー登録、認証、顧客登録、口座作成、入金、出金、振込、残高照会、取引履歴照会、監査ログ記録。
-- 初期データモデル候補: `users`、`customers`、`accounts`、`transactions`、`transfer_requests`、`audit_logs`。
-- 重要な金融原則: 金額整数、残高非負、残高変更と取引履歴の整合性、監査ログ、認証認可、振込の原子性、冪等性。
+- ユーザー登録、認証、顧客登録、口座作成、入金、出金、振込、残高照会、取引履歴照会、監査ログ記録。
+- PostgreSQL schema、migration、repository、DB transaction。
+- 認証方式、RBAC、監査ログ方式、冪等性キー処理。
 
 ### 未設計または具体化不足
 
-- Go プロジェクト構成、モジュール名、依存ライブラリ、REST API のエンドポイント詳細。
-- DB migration ツール、PostgreSQL 接続方法、トランザクション境界の実装方式。
-- 認証方式、セッション / トークン方式、パスワードハッシュ方式、ロール詳細。
-- 口座番号採番ルール、監査ログ保持方針、取消 / 組戻し、並行更新ロック方針。
-- エラーコード、レスポンス形式、ログ形式、設定管理、ローカル起動方法。
+- `transaction_type` ごとの残高増減方向と `balance_after` の意味。
+- 残高更新、取引履歴作成、振込依頼更新、監査ログ記録の DB transaction 境界。
+- 並行出金・並行振込時の残高保護方式。
+- 冪等性キーの一意スコープ、同一キー異内容時の扱い、保存期間。
+- 認証方式、RBAC、入力検証、エラー応答、ログマスキング、監査ログ失敗時境界。
 
 ### docs/実装不一致
 
-- docs は MVP と設計方針を示しているが、実装が存在しないため、現時点では「不一致」というより「設計のみ存在する」状態。
-- README が存在しないため、AGENTS.md の「README を最新状態に保つ」と docs の入口が repo root で案内されていない点は不足。ただし今回の出力先制約により README 更新は accepted scope に含めない。
-
-### レビュー未反映
-
-- 過去 cycle の reviewer 出力が存在しないため、レビュー未反映事項はなし。
+- README と現行実装は一致している。
+- MVP docs は金融業務全体の方針を示すが、実装は health check のみであることが README に明記されている。
+- `docs/data-model.md` は `deposit`、`withdrawal`、`transfer_debit`、`transfer_credit`、`reversal` を候補にしているが、残高方向と `balance_after` 検証ルールは未具体化。
 
 ## 入力レビュー
 
-- human notes: `docs/ai/output/human/` が存在しないため入力なし。
-- reviewer 出力: 過去 cycle の `code-reviewer.md`、`security-reviewer.md`、`banking-reviewer.md` は存在しないため入力なし。
-- decision log: `docs/decision-logs/2026-06-27-subagent-parallel-cycle.md` により、planner が accepted scope を作り、implementer は同一 cycle の accepted scope のみを実装する運用が採択済み。
+- cycle 001 implementer は、当時 accepted scope がないとして blocked を記録していた。現在は後続 cycle により Go skeleton と HTTP hardening が実装済み。
+- cycle 002 reviewer 群は、最小 Go REST API skeleton に修正必須 finding はなく、次は server hardening、元帳・残高方向、認証/RBAC、DB transaction 方針を小さく扱うことを推奨した。
+- cycle 003 implementer は、listen address 既定値、環境変数 override、HTTP timeout、README、unit test を実装済み。reviewer 群は修正必須 finding なしとした。
+- cycle 004 implementer は、同一 cycle の accepted scope 不在として blocked を記録した。
+- cycle 004 code-reviewer は、次に DB transaction 境界、認証認可、エラー分類、監査ログ境界のいずれかを小さく scope 化することを推奨した。
+- cycle 004 security-reviewer は、業務 API 前に認証/RBAC、入力検証・エラー応答・ログマスキング、監査ログ境界を docs 化することを推奨した。
+- cycle 004 banking-reviewer は、次に `transaction_type` ごとの残高方向、`balance_after`、追記型履歴、冪等性、並行更新、監査ログ境界を小さく設計文書化することを推奨した。
+- 不確実性: cycle 004 planner には docs-only accepted scope が記録されている一方、cycle 004 implementer は planner 不在として blocked している。並列実行タイミング差による不整合として扱い、今回の指定 cycle では現在の repo 状態を基準に accepted scope を再提示する。
 
 ## 改善候補
 
 | 候補 | repo 上の根拠 | 現在の不足 | MVP に入れる理由 | reviewer 観点 | 実装時の注意 |
 | --- | --- | --- | --- | --- | --- |
-| A. 最小 Go REST API の土台を作る | AGENTS.md は BE: Go, REST、DB: PostgreSQL を前提とする。docs は Phase 6 の最初に技術スタック決定を挙げている。 | `go.mod`、起動可能な HTTP サーバー、ヘルスチェック、テストがない。 | 業務機能実装前に小さく動く単位とテスト実行基盤が必要。 | code-reviewer: 構成、テスト容易性、依存最小化。security-reviewer: 不要な情報露出がないか。 | 金融仕様や DB schema を確定しない。ヘルスチェック程度に留める。 |
-| B. DB migration と初期 schema を作る | `docs/data-model.md` にテーブル候補と制約案がある。 | 実 DB schema、migration、制約、index がない。 | 残高・取引履歴・冪等性の土台になる。 | banking-reviewer: 残高非負、取引履歴、冪等性制約。code-reviewer: migration 管理。security-reviewer: 個人情報・秘密情報。 | schema 確定は後戻りしにくいため、口座番号や認証方式など人間確認が必要。今回採択しない。 |
-| C. 認証方式を決めてユーザー登録を実装する | `docs/mvp.md` はユーザー登録と認証を MVP に含める。 | 認証方式、ハッシュ方式、セッション管理が未決定。 | 以後の認可境界に必要。 | security-reviewer: パスワード保存、トークン、ログ漏洩。code-reviewer: middleware 設計。 | 認証方式は安全上重要な仕様なので人間確認なしに確定しない。今回採択しない。 |
-| D. README を作成して docs 入口と現状を示す | AGENTS.md は README 最新化を求めるが README がない。 | repo root の入口がない。 | 実装前のオンボーディングに有用。 | code-reviewer: docs と実装の一致。 | ユーザー指示で出力先は本ファイルのみのため今回実施不可。 |
-| E. 同一 cycle の reviewer が repo-wide review を行う | cycle protocol は reviewer 出力を次 cycle の入力にする。 | 初回 reviewer 出力がない。 | 実装前に設計リスクを洗い出せる。 | 各 reviewer: 専門観点の初回レビュー。 | planner は reviewer ファイルを作らない。別 agent に任せる。 |
+| A. 元帳・残高方向・成功時 transaction 境界を docs に具体化する | `docs/design-principles.md` は残高非負、取引履歴、原子性を定義済み。`docs/data-model.md` は `transactions` と `balance_after` を持つ。banking-reviewer が継続して高優先としている。 | `transaction_type` の増減方向、`balance_after` の意味、成功時に残高更新と取引履歴作成を同一 DB transaction に入れるルールが未具体化。 | 入金・出金・振込や DB schema に進む前に、金融事故リスクの核となる整合性ルールを共有できる。 | banking-reviewer: 元帳整合性。code-reviewer: transaction 境界。security-reviewer: 監査ログ未確定事項の分離。 | `reversal`、並行更新方式、冪等性スコープ、失敗時監査ログは人間確認事項として残す。 |
+| B. MVP 認証方式と RBAC / 水平権限チェック方針を docs 化する | `docs/mvp.md` と `docs/design-principles.md` は認証認可を必須としている。security-reviewer が High としている。 | Cookie session / Bearer token、パスワードハッシュ、CSRF、ロール権限表が未定義。 | 業務 API は認証認可なしに安全に追加できない。 | security-reviewer: 水平権限不備、認証強度、権限分離。 | 安全上重要な仕様であり、人間確認なしに最終確定しない。 |
+| C. REST API 入力検証・エラー応答・ログマスキング方針を docs 化する | `docs/security-notes.md` と `docs/test-strategy.md` は入力検証と秘密情報ログ禁止を示す。 | request body size limit、エラー JSON、検索上限、ログ禁止項目が未定義。 | 業務 API 追加時の情報漏えいとテストばらつきを防ぐ。 | security-reviewer: 情報露出。code-reviewer: error mapping。banking-reviewer: 失敗時証跡。 | 監査ログ境界と重なるため、失敗監査ログの最終方針は分離する。 |
+| D. PostgreSQL migration 方針と最小 schema を作る | `docs/data-model.md` にテーブル候補と制約案がある。 | migration ツール、ID 型、制約、index、DB 起動方法、冪等性 scope、残高競合方式が未定義。 | DB 側で残高非負、金額正数、冪等性を守る土台になる。 | code-reviewer: migration と repository。banking-reviewer: 残高・元帳。security-reviewer: 個人情報と secret。 | schema は後戻りしにくく、今回の設計整理後に扱う。 |
+| E. health / readiness / metrics の公開範囲を docs 化する | `BANK_SYSTEM_HTTP_ADDR` により外部 interface 待ち受けが可能。security-reviewer が将来 readiness の情報露出に注意している。 | 公開可能 endpoint、詳細 readiness、metrics の公開範囲が未定義。 | 業務 API / DB readiness 追加時の情報露出を抑える。 | security-reviewer: 公開範囲。banking-reviewer: 金融ドメイン情報非公開。 | 現在は `/healthz` 固定応答のみで緊急度は低い。 |
 
 ## 採択
 
-### 採択: A. 最小 Go REST API の土台を作る
+### 採択: A. 元帳・残高方向・成功時 transaction 境界を docs に具体化する
 
-- 理由: 現在は実装が存在せず、MVP の業務機能に入る前に、Go + REST の最小起動単位とテスト実行基盤を作るのが最も小さく、安全で、後続作業の足場になるため。
-- 金融ドメイン影響: 直接の残高・取引履歴・監査ログ・冪等性には触れない。金融仕様を確定しないため、後戻りリスクが小さい。
-- セキュリティ影響: 認証方式や秘密情報管理は実装しない。ヘルスチェックは内部状態や環境変数を漏らさないこと。
-- DB 影響: PostgreSQL 接続、migration、schema は実装しない。DB トランザクション境界は次以降の scope で扱う。
+- 理由: Go skeleton と HTTP hardening は完了しており、次に業務 API や DB schema へ進む前の最大リスクは、残高更新と取引履歴の整合性ルールが実装可能な粒度で共有されていないこと。
+- banking-reviewer 入力への対応: `transaction_type` ごとの残高増減方向、`balance_after`、追記型履歴、成功時 transaction 境界を明示する。
+- code-reviewer 入力への対応: 実装ではなく設計文書の更新に限定し、DB schema や migration ツールは確定しない。
+- security-reviewer 入力への対応: 監査ログの重要性は維持しつつ、失敗時監査ログ、監査ログ書き込み失敗時の扱い、マスキング詳細は人間確認事項として分離する。
 
 ## 却下
 
 | 候補 | 却下理由 | 再検討条件 |
 | --- | --- | --- |
-| D. README を作成して docs 入口と現状を示す | 有用だが、今回のユーザー指示で出力先は `docs/ai/cycles/2026-06-28-001/planner.md` のみに限定されているため。 | 次 cycle 以降で出力先制約がなく、README 更新が許可された場合。 |
+| D. PostgreSQL migration 方針と最小 schema を作る | DB schema は後戻りしにくく、元帳方向、冪等性スコープ、監査境界、認証方式、migration ツールが未確定。今回の accepted scope はその前提となる docs 整理に限定する。 | 元帳・残高方向・成功時 transaction 境界が docs に反映され、人間確認事項が減った後。 |
 
 ## 保留
 
 | 候補 | 保留理由 | 人間確認事項 | 次のアクション |
 | --- | --- | --- | --- |
-| B. DB migration と初期 schema を作る | schema、制約、採番、認証との関連は後戻りしにくい。実装基盤なしに先に固定すると変更コストが高い。 | migration ツール、ID 型、口座番号採番、冪等性キーの一意範囲、個人情報の最小項目。 | Go REST API 土台とテスト基盤後に、schema 案を小さく accepted scope 化する。 |
-| C. 認証方式を決めてユーザー登録を実装する | 認証方式とパスワードハッシュ方式は安全上重要で、人間確認なしに最終確定しない。 | セッション方式かトークン方式か、パスワードハッシュ方式、ロール初期値、管理者作成方法。 | 人間確認または設計ドキュメント更新後に scope 化する。 |
-| E. 同一 cycle の reviewer が repo-wide review を行う | planner の出力先ではなく reviewer agent の責務。 | なし。 | code-reviewer / security-reviewer / banking-reviewer が同一 cycle に出力する。 |
+| B. MVP 認証方式と RBAC / 水平権限チェック方針を docs 化する | 業務 API 前に必須だが、今回の cycle では金融事故リスクの核である元帳・残高方向を先に扱う。 | Cookie session か Bearer token か。CSRF、ログアウト、パスワードハッシュ、管理者作成方法、operator を含めるか。 | 次 cycle 以降で security design scope として採択する。 |
+| C. REST API 入力検証・エラー応答・ログマスキング方針を docs 化する | 業務 API 前に必要だが、現在の API は `/healthz` の固定応答のみ。 | request id、検索上限、ログに含める actor / IP / User-Agent、マスキング対象、失敗監査ログ境界。 | 認証または業務 API の前に docs scope として採択する。 |
+| E. health / readiness / metrics の公開範囲を docs 化する | 現在は `/healthz` の固定応答のみで、DB readiness や metrics は未実装。 | 詳細 readiness を公開するか、内部 network 限定または認証必須にするか。metrics を MVP に含めるか。 | DB 接続や readiness endpoint 追加前に採択する。 |
 
 ## accepted scope
 
 ### 目的
 
-- 学習用ミニバンキングシステムの最初の実装として、業務機能に入る前の最小 Go REST API 土台を作る。
-- 後続で顧客、口座、入出金、振込、監査ログを追加できるよう、起動可能・テスト可能な最小構成に限定する。
-- 金融仕様、DB schema、認証方式は確定しない。
+- 入金・出金・振込・DB schema 実装へ進む前に、残高変更と取引履歴の最小整合性ルールを設計文書へ反映する。
+- `transaction_type` ごとの残高増減方向と、`transactions.balance_after` の意味を明確にする。
+- 成功した残高変更では、口座残高更新と取引履歴作成を同一 DB transaction に入れる方針を明確にする。
+- 後戻りしにくい金融仕様は最終決定せず、人間確認事項として分離する。
 
 ### 対象ファイル/領域
 
-- Go module / アプリケーション起動に必要な最小ファイル。
-  - 例: `go.mod`
-  - 例: `cmd/server/main.go`
-  - 例: `internal/http` または同等の最小 HTTP handler パッケージ
-- 最小テスト。
-  - 例: HTTP handler の unit test / `go test ./...` が通る構成
-- 実装結果を記録する同一 cycle の implementer 成果物。
-  - `docs/ai/cycles/2026-06-28-001/implementer.md`
+- `docs/design-principles.md`
+  - 残高変更と取引履歴の同一 DB transaction 方針を追記する。
+  - 成功時に確定する最小ルールと、失敗時・監査ログ関連の未確定事項を分ける。
+- `docs/data-model.md`
+  - `transactions.transaction_type` ごとの残高増減方向表を追記する。
+  - `transactions.balance_after` の意味と制約案を追記する。
+  - `reversal` は候補として残しつつ、MVP 初期での扱いは未確定と明記する。
+- `docs/test-strategy.md`
+  - 将来の入金・出金・振込テストで、残高変更と取引履歴作成の同一 transaction、`balance_after`、残高非負、失敗時に残高と取引履歴が変わらないことを確認する方針を追記する。
+- `docs/ai/cycles/2026-06-28-001/implementer.md`
+  - 実装結果、scope 適合性、実装しなかったこと、テスト結果、未確認事項を記録する。
 
 ### 実装対象
 
-1. `go mod init` 相当で Go module を作る。
-   - module 名は repo 名に合わせたローカルで妥当な名前に留める。
-   - 外部依存は追加しないか、標準ライブラリのみを優先する。
-2. 標準ライブラリ `net/http` で起動できる最小 HTTP server を作る。
-   - `/healthz` などのヘルスチェックエンドポイントを 1 つ提供する。
-   - レスポンスは固定の安全な JSON または plain text とし、環境変数、DB 接続情報、秘密情報、内部パスを出さない。
-3. server / handler をテストしやすいように分離する。
-   - `main` にすべてを直書きせず、handler 生成関数などを別パッケージまたは別関数に分ける。
-4. 最小テストを追加する。
-   - `/healthz` が成功ステータスを返すこと。
-   - レスポンスが想定どおりで、機密情報や不要な詳細を含まないこと。
-5. `go test ./...` が実行できる状態にする。
-6. `docs/ai/cycles/2026-06-28-001/implementer.md` に、参照した accepted scope、変更内容、scope 適合性、実装しなかったこと、テスト結果、未確認事項を記録する。
+1. `docs/design-principles.md` に、残高変更成功時の最小 transaction 方針を追記する。
+   - 入金成功時は、対象口座の残高増加と入金取引履歴作成を同一 DB transaction に含める。
+   - 出金成功時は、対象口座の残高減少と出金取引履歴作成を同一 DB transaction に含める。
+   - 振込成功時は、振込元残高減少、振込先残高増加、振込出金取引履歴、振込入金取引履歴、振込依頼の成功状態更新を同一 DB transaction に含める。
+   - 金額は正の整数、通貨は MVP では JPY、残高は 0 未満にしない。
+   - 残高変更に成功したのに取引履歴がない状態、または取引履歴だけがあり残高が変わらない状態を禁止する。
+   - 失敗時監査ログ、監査ログ書き込み失敗時の業務処理、並行更新制御方式は未確定として人間確認事項に残す。
+2. `docs/data-model.md` に、`transactions.transaction_type` の残高増減方向表を追記する。
+   - `deposit`: 対象口座の残高を増やす。
+   - `withdrawal`: 対象口座の残高を減らす。
+   - `transfer_debit`: 振込元口座の残高を減らす。
+   - `transfer_credit`: 振込先口座の残高を増やす。
+   - `reversal`: 取消・組戻しの設計が未確定のため、MVP 初期では方向と利用条件を確定しない。
+3. `docs/data-model.md` に、`balance_after` の意味を追記する。
+   - `balance_after` は、その取引を対象口座へ適用した直後の口座残高を表す。
+   - `balance_after` は 0 以上である。
+   - 1 件の振込では、振込元の `transfer_debit` と振込先の `transfer_credit` が別々の `transactions` 行を持ち、それぞれの対象口座に対する `balance_after` を持つ。
+   - 履歴は追記型を基本とし、誤り訂正や取消は既存行の更新・削除ではなく追加記録で表現する方針を維持する。ただし `reversal` の詳細は未確定として残す。
+4. `docs/test-strategy.md` に、将来のテスト観点を追記する。
+   - 入金成功時に残高と `deposit` 取引履歴が同時に作られ、`balance_after` が更新後残高と一致すること。
+   - 出金成功時に残高と `withdrawal` 取引履歴が同時に作られ、残高不足時は残高も取引履歴も変わらないこと。
+   - 振込成功時に 2 口座の残高、2 件の取引履歴、振込依頼状態が同一 transaction で整合すること。
+   - 振込失敗時に片方の残高だけ、または片方の取引履歴だけが残らないこと。
+5. `docs/ai/cycles/2026-06-28-001/implementer.md` に、参照した accepted scope、変更内容、scope 適合性、実装しなかったこと、テスト結果、未確認事項を記録する。
 
 ### 実装しないこと
 
+- Go ソースコード、HTTP handler、server 設定、DB 接続コードは変更しない。
+- PostgreSQL migration、DB schema、SQL、repository、transaction manager は作らない。
 - 顧客登録、口座作成、入金、出金、振込、残高照会、取引履歴照会、監査ログの業務 API は実装しない。
-- PostgreSQL 接続、DB schema、migration、repository、transaction 処理は実装しない。
-- 認証、認可、ユーザー登録、パスワードハッシュ、セッション / トークンは実装しない。
-- 口座番号採番、冪等性キー処理、残高更新、取引履歴、監査ログの詳細仕様は確定しない。
-- README 作成・更新は今回の accepted scope に含めない。今回のユーザー指示により planner の書き込み先が本ファイルに限定されているため、implementer が README を変更するかは別途ユーザー許可がある場合のみ。
-- Docker、CI、lint、外部依存導入、フレームワーク導入は行わない。
+- 認証、認可、ユーザー登録、パスワードハッシュ、セッション、トークン、CSRF、ログアウトは実装・確定しない。
+- `reversal`、取消、組戻しの詳細仕様は確定しない。
+- 並行出金・並行振込の制御方式として、行ロック、条件付き UPDATE、その他方式のどれを使うかは確定しない。
+- 冪等性キーの一意スコープ、同一キー異内容時の扱い、保存期間は確定しない。
+- 監査ログ書き込み失敗時に業務処理を失敗させるか、補償するかは確定しない。
+- `README.md` は、今回の docs-only scope では変更しない。実装済み機能に変化がないため。
+- cycle 002 / 003 / 004 の成果物は編集しない。
 
 ### テスト方針
 
-- `go test ./...` を実行する。
-- handler の unit test では `httptest` を使い、HTTP status と body を確認する。
-- 起動確認が必要な場合でも、長時間常駐する server を残さない。
-- DB や外部ネットワークを必要とするテストは作らない。
+- docs-only 変更のため、実行必須の業務テストはない。
+- 変更後に `go test ./...` を実行できる環境であれば、既存コードが壊れていないことを確認する。
+- この planner 作業では `go test ./...` を試したが、現在の環境では `go` コマンドが見つからず実行できなかった。
+- Markdown の表や見出しが既存 docs の構成と矛盾していないか確認する。
+- 金額を浮動小数点で扱う記述が混入していないか確認する。
+- 保留事項や人間確認事項を、確定済みルールとして書いていないか確認する。
 
 ### レビューで重点確認してほしい観点
 
-- code-reviewer:
-  - Go module / package 構成が過剰でなく、次の業務機能追加に耐えるか。
-  - `main` と handler が分離され、テスト容易性があるか。
-  - 標準ライブラリ中心で不要な依存を増やしていないか。
-- security-reviewer:
-  - `/healthz` が秘密情報、環境情報、内部パス、stack trace を返していないか。
-  - 将来の認証導入を妨げる公開 API 設計になっていないか。
 - banking-reviewer:
-  - 今回の実装が金融ドメイン仕様を暗黙に確定していないか。
-  - 残高、取引履歴、監査ログ、冪等性、DB トランザクション境界に未実装であることが明確か。
+  - `transaction_type` の残高増減方向と `balance_after` の説明が、残高非負、取引履歴追記型、振込の二面性と矛盾しないか。
+  - 成功時 transaction 境界が、片側だけ成功する振込や取引履歴欠落を防ぐ表現になっているか。
+  - `reversal`、並行更新制御、冪等性、監査ログ失敗時扱いを勝手に確定していないか。
+- code-reviewer:
+  - docs の追記が実装時に参照できる粒度で、かつ DB schema や migration を過度に先取りしていないか。
+  - 将来の repository / transaction manager / test 実装へつながるテスト観点が明確か。
+- security-reviewer:
+  - 監査ログや失敗時ログの未確定事項が、人間確認事項として分離されているか。
+  - エラー詳細、個人情報、秘密情報、内部情報のログ出力方針を今回 scope で不用意に確定していないか。
 
 ## 実装しないこと
 
-- planner として実装、ソースコード変更、DB schema 確定、認証方式確定、金融仕様の最終決定は行わない。
-- 本ファイル以外への書き込みは行わない。
-- 他 agent の同時作業や未コミット変更を revert しない。
-- 保留事項を accepted scope に混ぜない。
+- planner として、ソースコード、設計文書、DB schema、認証方式、金融仕様の実装・最終決定は行わない。
+- 本ファイル `docs/ai/cycles/2026-06-28-001/planner.md` 以外へ書き込まない。
+- cycle 002 / 003 / 004 の成果物を修正しない。
+- ユーザー作業や他 agent 作業を revert しない。
+- 保留事項や人間確認事項を accepted scope に混ぜない。
 
 ## 人間確認事項
 
-1. Go module 名は何にするか。未指定の場合、implementer は repo 名ベースの暫定名を使う可能性がある。
-2. README が存在しないため、次 cycle 以降で README 作成を許可するか。
-3. DB migration ツールを採用するか。採用する場合、`golang-migrate`、`goose`、手書き SQL などの候補から選ぶ必要がある。
-4. 認証方式をどうするか。セッション Cookie、JWT、その他の方式は安全上重要なため人間確認が必要。
-5. 口座番号採番ルール、ID 型、冪等性キーの一意範囲、監査ログ保持期間、取消 / 組戻しの扱いは後戻りしにくいため、実装前に別途設計判断が必要。
+1. `reversal`、取消、組戻しを MVP 初期の実装対象に含めるか。含めない場合、初期 MVP では「既存取引の訂正・取消は未対応」と明示してよいか。
+2. 並行出金・並行振込時の残高保護を、PostgreSQL の行ロック、条件付き UPDATE、または別方式のどれで学習・実装するか。
+3. 冪等性キーの一意スコープを、操作種別、送信元口座、ログインユーザー、リクエスト本文 hash のどこまで含めるか。
+4. 監査ログ書き込み失敗時に業務処理を失敗させるか、別経路で補償するか。
+5. 失敗時監査ログを、業務 transaction の rollback と独立して残す必要があるか。
+6. 業務 API 追加前に、認証方式を Cookie session + CSRF と Bearer token のどちらで検討するか。
+7. PostgreSQL migration ツール、ID 型、口座番号採番方式をいつ確定するか。
