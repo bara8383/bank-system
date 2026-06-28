@@ -78,6 +78,22 @@
 | occurred_at | 取引発生日時 |
 | created_at | 作成日時 |
 
+`transaction_type` ごとの残高増減方向は次のとおりです。
+
+| transaction_type | 対象口座 | 残高への影響 |
+| --- | --- | --- |
+| deposit | 入金対象口座 | 残高を増やす |
+| withdrawal | 出金対象口座 | 残高を減らす |
+| transfer_debit | 振込元口座 | 残高を減らす |
+| transfer_credit | 振込先口座 | 残高を増やす |
+| reversal | 取消・組戻し・訂正の対象口座 | 設計が未確定のため、MVP初期では方向と利用条件を確定しない |
+
+`balance_after` は、その取引を対象口座へ適用した直後の口座残高を表します。`balance_after` は0以上で、対象口座の更新後残高と一致させます。
+
+1件の振込では、振込元口座の `transfer_debit` と振込先口座の `transfer_credit` を別々の `transactions` 行として記録し、それぞれの対象口座に対する `balance_after` を持たせます。
+
+取引履歴は追記型を基本とします。誤り訂正や取消が必要な場合も既存行の更新・削除ではなく追加記録で表現する方針を維持します。ただし、`reversal` の詳細な利用条件、残高増減方向、取消・組戻し・訂正の業務仕様は未確定です。
+
 ### transfer_requests
 
 利用者から受け付けた振込依頼と処理状態を表します。
