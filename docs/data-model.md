@@ -126,11 +126,14 @@
 | target_type | customer、account、transaction、transfer_requestなど |
 | target_id | 対象ID |
 | result | success、failure |
-| failure_reason | 失敗理由 |
+| failure_reason | 失敗理由。利用者向け詳細ではなく、安全な分類または短い理由。 |
+| request_body_hash | リクエスト本文の同一性調査が必要な場合のhash。raw request bodyは保存しない。 |
 | ip_address | 操作元IPアドレス |
 | user_agent | 操作元User-Agent |
 | occurred_at | 操作日時 |
 | created_at | 作成日時 |
+
+失敗時は対象の存在確認前に拒否される場合があるため、`target_id` は未確定または未設定になり得ます。監査ログには raw request body、パスワード、token、secret、CSRF token、セッションID、過剰な個人情報を保存しません。リクエスト同一性の調査に必要な情報は、必要最小限の分類情報または `request_body_hash` のようなhash属性で扱う方針です。
 
 ## 主な制約案
 
@@ -138,6 +141,7 @@
 - `accounts.account_number` は一意にする。
 - `accounts.balance_amount` は0以上にする。
 - `transactions.amount` は0より大きい値にする。
+- `transactions.balance_after` は0以上にする。
 - `transfer_requests.amount` は0より大きい値にする。
 - `transfer_requests.idempotency_key` は依頼者または振込元口座の範囲で一意にする。
 - `transactions.account_id`、`accounts.customer_id` などの外部キーを設定する。
