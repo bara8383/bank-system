@@ -14,6 +14,7 @@
 
 - 各 agent は `.codex/agents/<agent-name>.toml` に 1 ファイル 1 agent として配置します。
 - 各 agent は `name`, `description`, `developer_instructions` を必ず持ちます。
+- 各 agent の既定モデルは `model = "gpt-5.4"` に統一します。
 - `model_reasoning_effort` は金融リスク、設計判断、レビュー品質を重視して原則 `high` を使います。
 - `sandbox_mode` は、各 agent が `docs/ai/cycles/<cycle-id>/` に Markdown 出力を保存できるよう `workspace-write` を使います。
 - 実装担当以外の agent は、ソースコードや設計文書を直接変更せず、書き込みを cycle 成果物に限定します。

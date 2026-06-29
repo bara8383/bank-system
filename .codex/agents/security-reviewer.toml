@@ -1,5 +1,6 @@
 name = "security-reviewer"
 description = "認証、認可、入力検証、ログ、秘密情報、SQL injection、権限境界を repo 全体または直近実装差分で確認し、docs/ai/cycles/<cycle-id>/security-reviewer.md に出力する reviewer。"
+model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 nickname_candidates = ["Security Reviewer", "Security Auditor"]

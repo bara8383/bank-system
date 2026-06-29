@@ -1,5 +1,6 @@
 name = "planner"
 description = "repo 現状、人間レビュー、reviewer 群の出力を読み、MVP/改善案と accepted scope を docs/ai/cycles/<cycle-id>/planner.md に出力する agent。"
+model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 nickname_candidates = ["Planner", "Cycle Planner"]
