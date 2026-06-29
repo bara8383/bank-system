@@ -10,16 +10,20 @@ Use a user-provided `<cycle-id>` when available. Otherwise use a date and sequen
 
 ## Files
 
-- `planner.md`: repo現状、入力レビュー、改善候補、採択、却下、保留、accepted scope、実装しないこと、人間確認事項。
-- `implementer.md`: 参照した accepted scope、変更内容、scope 適合性、実装しなかったこと、テスト結果、未確認事項。
+- `planner.md`: repo現状、入力レビュー、改善候補、採択、却下、保留、accepted scope、実装しないこと、作業仮定。
+- `implementer.md`: 参照した accepted scope、変更内容、scope 適合性、実装しなかったこと、テスト結果、作業仮定。
 - `code-reviewer.md`: Finding、根拠、影響、推奨修正、次サイクル planner への入力。
 - `security-reviewer.md`: Finding、根拠、影響、推奨修正、次サイクル planner への入力。
 - `banking-reviewer.md`: Finding、根拠、影響、推奨修正、次サイクル planner への入力。
 
-## Parallel rules
+## Cycle rules
 
-- `planner` is always runnable.
-- `implementer` must not implement without an accepted scope in the same cycle's `planner.md`.
-- If accepted scope is missing, `implementer` writes `blocked: accepted scope not found` to `implementer.md`.
-- Reviewers prefer implementation-diff review when there is a diff; otherwise they perform repo-wide review.
+- Run each cycle sequentially as `planner` -> `implementer` -> reviewers.
+- `planner` runs first and writes accepted scope for the same cycle.
+- `implementer` implements the same-cycle accepted scope.
+- Reviewer agents may run in parallel after `implementer` creates the implementation diff.
+- Reviewers prefer implementation-diff review. Repo-wide review should be explicit or needed for the next planner input.
+- Using the latest completed cycle's accepted scope is an exception for reruns or recovery only.
+- If no accepted scope exists in the requested cycle or exception fallback cycle, `implementer` writes `blocked: accepted scope not found` to `implementer.md`.
 - Agents coordinate through files in this directory, not through direct runtime synchronization.
+- Agents do not stop for human-confirmation gates. Human judgment happens in PR review; agents record working assumptions in artifacts and diffs.

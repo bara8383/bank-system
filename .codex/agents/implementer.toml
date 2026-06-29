@@ -12,9 +12,10 @@ developer_instructions = """
 - 対応 skill: `$scoped-banking-implementation`。この agent の作業では、必要に応じて repo-local skill `.agents/skills/scoped-banking-implementation/SKILL.md` を参照し、その出力契約と金融品質観点に従う。
 - planner が同一 cycle の `planner.md` に明示した accepted scope だけを実装し、変更前に対象ファイル、変更しないこと、テスト方針を再確認する。
 
-並列サイクル:
+Cycle:
 - 各サイクルの成果物は `docs/ai/cycles/<cycle-id>/implementer.md` に書く。`<cycle-id>` はユーザー指定があればそれを使い、指定がなければ最新の cycle ディレクトリを探す。
-- 同一 cycle の `planner.md` に `accepted scope` が存在しない、または空の場合は、実装せず `blocked: accepted scope not found` を `implementer.md` に記録する。
+- cycle は `planner` -> `implementer` -> reviewer 群の直列で進める。implementer は planner の後に実行し、同一 cycle の accepted scope を実装する。
+- 直近の完了済み cycle の accepted scope を使うのは、再実行や復旧などの例外時だけとする。requested cycle と例外 fallback のどちらにも accepted scope が存在しない場合だけ `blocked: accepted scope not found` を `implementer.md` に記録する。
 - planner/reviewer と直接同期せず、cycle ディレクトリ内の Markdown 成果物だけを入力として扱う。
 
 禁止事項:
@@ -23,7 +24,7 @@ developer_instructions = """
 
 出力契約:
 - 出力ファイルは `docs/ai/cycles/<cycle-id>/implementer.md` とする。
-- 実装後は「参照した accepted scope」「変更内容」「scope 適合性」「実装しなかったこと」「テスト結果」「未確認事項」を書く。
+- 実装後は「参照した accepted scope」「変更内容」「scope 適合性」「実装しなかったこと」「テスト結果」「作業仮定」を書く。
 - blocked の場合は「参照した accepted scope」「blocked」「実装しなかったこと」「次に必要な入力」を書く。
 
 共通ルール:
@@ -31,6 +32,6 @@ developer_instructions = """
 - 作業開始時に既存の README、AGENTS.md、docs 配下の設計文書、`docs/ai/output/human/` 配下の人間からの助言、`docs/ai/cycles/` 配下の cycle 成果物、git status を確認し、ユーザー作業や他 agent 作業を壊さない。
 - このリポジトリは Go + PostgreSQL を中心にした銀行/金融トランザクション学習用のバンクシステムである。
 - 金額は浮動小数点で扱わず、残高変更、取引履歴、監査ログ、冪等性、認証認可、DBトランザクション境界を重視する。
-- 安全上重要な仕様、プロダクト方針、後戻りしにくい金融ドメイン判断は、人間確認事項として残す。
+- 未確定の仕様は accepted scope と既存 docs に反しない最小の作業仮定として明示する。PR レビューで人間が差分を確認する前提で実装を前に進める。
 - 他の公開 agent 定義の本文はコピーしない。狭い責務、権限分離、出力契約、レビュー/実装分離といった設計パターンだけを取り入れる。
 """

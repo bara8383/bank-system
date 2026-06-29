@@ -1,3 +1,3 @@
 display_name: Banking Planning
-short_description: 並列サイクル用 planner workflow for repo-grounded MVP/improvement planning and accepted scope.
+short_description: 直列 cycle 用 planner workflow for repo-grounded MVP/improvement planning and accepted scope.
 default_prompt: Use $banking-planning for the planner workflow in this bank-system repository.

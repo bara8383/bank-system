@@ -5,10 +5,11 @@
 ## 方針
 
 - subagent は `planner`、`implementer`、reviewer 群の 3 ロールで運用します。
-- ユーザーは毎サイクル、`planner`、`implementer`、reviewer 群を並列 spawn できます。
+- cycle は `planner` -> `implementer` -> reviewer 群の直列で進めます。reviewer 群だけは、implementer の差分作成後に並列実行できます。
 - agent 同士は直接同期せず、`docs/ai/cycles/<cycle-id>/` 配下の Markdown 成果物を介して連携します。
 - `planner` は改善案と accepted scope を作り、`implementer` は accepted scope だけを実装します。
 - reviewer 群は専門観点ごとに repo 全体または直近実装差分をレビューし、次サイクル planner への入力を残します。
+- 人間の最終判断は PR レビューで行う前提とし、agent は未確定事項だけを理由に停止しません。未確定事項は作業仮定として明示し、差分と cycle 成果物に残します。
 
 ## Codex TOML 方針
 
@@ -33,15 +34,18 @@
 
 - 各サイクルは `docs/ai/cycles/<cycle-id>/` を使います。
 - `<cycle-id>` はユーザー指定があればそれを使い、指定がなければ `YYYY-MM-DD-001` のように日付と連番で作ります。
-- `planner.md` の必須項目: repo現状、入力レビュー、改善候補、採択、却下、保留、accepted scope、実装しないこと、人間確認事項。
-- `implementer.md` の必須項目: 参照した accepted scope、変更内容、scope 適合性、実装しなかったこと、テスト結果、未確認事項。
+- `planner.md` の必須項目: repo現状、入力レビュー、改善候補、採択、却下、保留、accepted scope、実装しないこと、作業仮定。
+- `implementer.md` の必須項目: 参照した accepted scope、変更内容、scope 適合性、実装しなかったこと、テスト結果、作業仮定。
 - reviewer 出力の必須項目: Finding、根拠、影響、推奨修正、次サイクル planner への入力。
 
-## 並列 spawn ルール
+## Cycle rules
 
-- `planner` は常に実行できます。
-- `implementer` は同一 cycle の `planner.md` に accepted scope がない場合、実装せず `blocked: accepted scope not found` を記録します。
-- reviewer 群は実装差分があれば差分レビューを優先し、実装差分がなければ repo 全体レビューを行います。
+- 1 つの cycle は `planner` -> `implementer` -> reviewer 群の順で実行します。
+- `planner` は最初に実行し、同一 cycle の `planner.md` に accepted scope を作ります。
+- `implementer` は同一 cycle の accepted scope を実装します。直近完了済み cycle の accepted scope を使うのは、再実行や復旧などの例外時だけです。
+- reviewer 群は `implementer` の差分作成後に並列実行できます。
+- reviewer 群は実装差分があれば差分レビューを優先します。実装差分がない repo-wide review は、ユーザーが明示した場合または planner が次 scope 作成の入力として必要と判断した場合に限定します。
+- requested cycle と例外 fallback のどちらにも accepted scope が存在しない場合だけ、`implementer` は `blocked: accepted scope not found` を記録します。
 - 各 agent は作業開始時に `git status --short`、README、AGENTS.md、docs 配下の設計文書、human notes、cycle 成果物を確認し、ユーザー作業や他 agent 作業を壊しません。
 
 ## Repo-local skills
@@ -56,25 +60,19 @@
 
 ## 推奨ワークフロー
 
-1. ユーザーが同じ `<cycle-id>` を指定して `planner`、`implementer`、reviewer 群を spawn する。
-2. `planner` が repo と過去成果物を読み、`planner.md` に accepted scope を出す。
-3. `implementer` は `planner.md` に accepted scope があれば実装し、なければ blocked を記録する。
-4. reviewer 群は repo 全体または実装差分を並列レビューし、それぞれの Markdown に次サイクル planner への入力を残す。
-5. 次サイクルの `planner` は前サイクルの reviewer 出力と human notes を読み、次の改善案と accepted scope を作る。
+1. `planner` が repo と過去成果物を読み、`planner.md` に code-changing scope を 1 つ以上含む accepted scope を出す。
+2. `implementer` は同一 cycle の accepted scope を実装し、必要な docs / README 更新とテストを同じ差分に含める。
+3. `code-reviewer`、`security-reviewer`、`banking-reviewer` は、implementer の差分作成後に並列で実行し、それぞれの Markdown に次サイクル planner への入力を残す。
+4. 次サイクルの `planner` は前サイクルの reviewer 出力と human notes を読み、次の改善案と accepted scope を作る。
 
-## AIが採択してよいもの / 人間に確認すべきもの
+## AIの作業仮定
 
-### AIが採択してよいもの
+PR レビューで人間が差分を確認する前提のため、agent は未確定事項を理由に停止しません。次の範囲は、既存 docs の方針に反しない限り AI が作業仮定を置いて採択・実装できます。
 
 - 既存ドキュメントの方針に明確に沿う小さな改善。
 - テスト追加、命名改善、責務分離、エラーメッセージ整理など、プロダクト方針を変えない保守性向上。
 - 金額を整数で扱う、トランザクション内で残高と取引履歴を更新するなど、既存の設計原則を具体化する実装。
 - 監査ログ項目の不足を補うなど、既存方針の範囲内で安全性を高める変更。
-
-### 人間に確認すべきもの
-
-- MVP の範囲変更、対象ユーザー変更、外部銀行接続、多通貨対応などプロダクト方針を変える判断。
-- 残高モデル、元帳モデル、取消/組戻し仕様、口座状態遷移など、後戻りが難しい金融ドメイン仕様。
-- 認証方式、権限モデル、監査ログ保持方針、個人情報保持方針など安全上重要な仕様。
-- データ削除、履歴改変、監査証跡の省略につながる判断。
-- 大規模リファクタリング、DBスキーマ破壊的変更、移行手順が必要な変更。
+- MVP の実装を前に進めるための最小 DB schema、migration、repository、API skeleton。
+- 認証、権限、監査ログ、冪等性、取消などの初期案。ただし、採用した仮定は docs と PR 差分で明示する。
+- 破壊的変更や大きな仕様変更が必要な場合も、まずは小さな実装案または設計案として差分化し、PR レビューで修正可能にする。
