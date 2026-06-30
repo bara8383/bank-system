@@ -124,6 +124,33 @@ func TestAddBalanceRejectsInvalidAmountAndReturnsOriginalBalance(t *testing.T) {
 	}
 }
 
+func TestAddBalanceRejectsInvalidStartingBalanceAndReturnsOriginalBalance(t *testing.T) {
+	balance := Balance{value: -1}
+	amount := mustAmount(t, 1)
+
+	updated, err := AddBalance(balance, amount)
+	if !errors.Is(err, ErrBalanceMustBeNonNegative) {
+		t.Fatalf("expected ErrBalanceMustBeNonNegative, got %v", err)
+	}
+
+	if updated.Int64() != balance.Int64() {
+		t.Fatalf("expected original balance %d, got %d", balance.Int64(), updated.Int64())
+	}
+}
+
+func TestAddBalancePrioritizesInvalidStartingBalanceOverInvalidAmount(t *testing.T) {
+	balance := Balance{value: -1}
+
+	updated, err := AddBalance(balance, Amount{})
+	if !errors.Is(err, ErrBalanceMustBeNonNegative) {
+		t.Fatalf("expected ErrBalanceMustBeNonNegative, got %v", err)
+	}
+
+	if updated.Int64() != balance.Int64() {
+		t.Fatalf("expected original balance %d, got %d", balance.Int64(), updated.Int64())
+	}
+}
+
 func TestAddBalanceReturnsOriginalBalanceOnOverflow(t *testing.T) {
 	balance := mustBalance(t, math.MaxInt64)
 	amount := mustAmount(t, 1)
@@ -158,6 +185,33 @@ func TestSubtractBalanceRejectsInvalidAmountAndReturnsOriginalBalance(t *testing
 	updated, err := SubtractBalance(balance, Amount{})
 	if !errors.Is(err, ErrAmountMustBePositive) {
 		t.Fatalf("expected ErrAmountMustBePositive, got %v", err)
+	}
+
+	if updated.Int64() != balance.Int64() {
+		t.Fatalf("expected original balance %d, got %d", balance.Int64(), updated.Int64())
+	}
+}
+
+func TestSubtractBalanceRejectsInvalidStartingBalanceAndReturnsOriginalBalance(t *testing.T) {
+	balance := Balance{value: -1}
+	amount := mustAmount(t, 1)
+
+	updated, err := SubtractBalance(balance, amount)
+	if !errors.Is(err, ErrBalanceMustBeNonNegative) {
+		t.Fatalf("expected ErrBalanceMustBeNonNegative, got %v", err)
+	}
+
+	if updated.Int64() != balance.Int64() {
+		t.Fatalf("expected original balance %d, got %d", balance.Int64(), updated.Int64())
+	}
+}
+
+func TestSubtractBalancePrioritizesInvalidStartingBalanceOverInvalidAmount(t *testing.T) {
+	balance := Balance{value: -1}
+
+	updated, err := SubtractBalance(balance, Amount{})
+	if !errors.Is(err, ErrBalanceMustBeNonNegative) {
+		t.Fatalf("expected ErrBalanceMustBeNonNegative, got %v", err)
 	}
 
 	if updated.Int64() != balance.Int64() {
