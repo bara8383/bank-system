@@ -80,6 +80,10 @@ func (b Balance) Int64() int64 {
 
 // AddBalance returns the balance after applying a deposit-like increase.
 func AddBalance(balance Balance, amount Amount) (Balance, error) {
+	if err := balance.Validate(); err != nil {
+		return balance, err
+	}
+
 	if err := amount.Validate(); err != nil {
 		return balance, err
 	}
@@ -95,6 +99,10 @@ func AddBalance(balance Balance, amount Amount) (Balance, error) {
 // When the amount exceeds the current balance, the original balance is returned
 // with ErrInsufficientBalance so callers can keep state unchanged.
 func SubtractBalance(balance Balance, amount Amount) (Balance, error) {
+	if err := balance.Validate(); err != nil {
+		return balance, err
+	}
+
 	if err := amount.Validate(); err != nil {
 		return balance, err
 	}
