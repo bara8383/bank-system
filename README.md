@@ -10,7 +10,7 @@
 現時点で実装済みなのは、Go 標準ライブラリだけを使った最小 REST API サーバー、ヘルスチェック、金額・残高 validation の domain 土台です。
 
 - `GET /healthz`: サーバーの最小ヘルスチェックとして `{"status":"ok"}` を返します。
-- `internal/domain`: JPY の整数最小通貨単位を `int64` で扱う金額・残高 helper を提供します。正の取引金額、0 以上の残高、残高加算、残高不足を拒否する減算を検証できます。
+- `internal/domain`: JPY の整数最小通貨単位を `int64` で扱う金額・残高 helper を提供します。正の取引金額、0 以上の残高、残高加算、残高不足を拒否する減算に加え、constructor を経由しない値を service / repository / DB insert 境界で再検証する `Validate()` method を利用できます。
 - 外部ライブラリ、DB 接続、認証、業務 API はまだ導入していません。
 
 ## 実行方法

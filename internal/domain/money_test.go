@@ -33,6 +33,20 @@ func TestNewAmountRejectsZeroAndNegativeTransactionAmounts(t *testing.T) {
 	}
 }
 
+func TestAmountValidateRejectsZeroValueAmount(t *testing.T) {
+	if err := (Amount{}).Validate(); !errors.Is(err, ErrAmountMustBePositive) {
+		t.Fatalf("expected ErrAmountMustBePositive for zero value amount, got %v", err)
+	}
+}
+
+func TestAmountValidateAcceptsPositiveAmount(t *testing.T) {
+	amount := mustAmount(t, 1)
+
+	if err := amount.Validate(); err != nil {
+		t.Fatalf("expected positive amount to be valid, got error: %v", err)
+	}
+}
+
 func TestNewBalanceAcceptsZeroAndPositiveBalances(t *testing.T) {
 	testCases := map[string]int64{
 		"zero":     0,
@@ -56,6 +70,29 @@ func TestNewBalanceAcceptsZeroAndPositiveBalances(t *testing.T) {
 func TestNewBalanceRejectsNegativeBalance(t *testing.T) {
 	_, err := NewBalance(-1)
 	if !errors.Is(err, ErrBalanceMustBeNonNegative) {
+		t.Fatalf("expected ErrBalanceMustBeNonNegative, got %v", err)
+	}
+}
+
+func TestBalanceValidateAcceptsZeroAndPositiveBalances(t *testing.T) {
+	testCases := map[string]Balance{
+		"zero":     {},
+		"positive": mustBalance(t, 1),
+	}
+
+	for name, balance := range testCases {
+		t.Run(name, func(t *testing.T) {
+			if err := balance.Validate(); err != nil {
+				t.Fatalf("expected balance %d to be valid, got error: %v", balance.Int64(), err)
+			}
+		})
+	}
+}
+
+func TestBalanceValidateRejectsNegativeBalance(t *testing.T) {
+	balance := Balance{value: -1}
+
+	if err := balance.Validate(); !errors.Is(err, ErrBalanceMustBeNonNegative) {
 		t.Fatalf("expected ErrBalanceMustBeNonNegative, got %v", err)
 	}
 }
