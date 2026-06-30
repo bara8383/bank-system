@@ -22,11 +22,23 @@ type Amount struct {
 
 // NewAmount validates and creates a positive transaction amount.
 func NewAmount(value int64) (Amount, error) {
-	if value <= 0 {
-		return Amount{}, ErrAmountMustBePositive
+	amount := Amount{value: value}
+	if err := amount.Validate(); err != nil {
+		return Amount{}, err
 	}
 
-	return Amount{value: value}, nil
+	return amount, nil
+}
+
+// Validate confirms the amount satisfies the domain invariant.
+// It is intended for service, repository, and persistence boundaries that need
+// to re-check values that may not have been created through NewAmount.
+func (a Amount) Validate() error {
+	if a.value <= 0 {
+		return ErrAmountMustBePositive
+	}
+
+	return nil
 }
 
 // Int64 returns the amount in the smallest currency unit.
@@ -42,11 +54,23 @@ type Balance struct {
 
 // NewBalance validates and creates a non-negative balance.
 func NewBalance(value int64) (Balance, error) {
-	if value < 0 {
-		return Balance{}, ErrBalanceMustBeNonNegative
+	balance := Balance{value: value}
+	if err := balance.Validate(); err != nil {
+		return Balance{}, err
 	}
 
-	return Balance{value: value}, nil
+	return balance, nil
+}
+
+// Validate confirms the balance satisfies the domain invariant.
+// It is intended for service, repository, and persistence boundaries that need
+// to re-check values that may not have been created through NewBalance.
+func (b Balance) Validate() error {
+	if b.value < 0 {
+		return ErrBalanceMustBeNonNegative
+	}
+
+	return nil
 }
 
 // Int64 returns the balance in the smallest currency unit.
@@ -56,8 +80,8 @@ func (b Balance) Int64() int64 {
 
 // AddBalance returns the balance after applying a deposit-like increase.
 func AddBalance(balance Balance, amount Amount) (Balance, error) {
-	if amount.value <= 0 {
-		return balance, ErrAmountMustBePositive
+	if err := amount.Validate(); err != nil {
+		return balance, err
 	}
 
 	if balance.value > math.MaxInt64-amount.value {
@@ -71,8 +95,8 @@ func AddBalance(balance Balance, amount Amount) (Balance, error) {
 // When the amount exceeds the current balance, the original balance is returned
 // with ErrInsufficientBalance so callers can keep state unchanged.
 func SubtractBalance(balance Balance, amount Amount) (Balance, error) {
-	if amount.value <= 0 {
-		return balance, ErrAmountMustBePositive
+	if err := amount.Validate(); err != nil {
+		return balance, err
 	}
 
 	if amount.value > balance.value {
