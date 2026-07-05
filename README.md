@@ -7,10 +7,10 @@
 
 ## 現在の実装範囲
 
-現時点で実装済みなのは、Go 標準ライブラリだけを使った最小 REST API サーバー、ヘルスチェック、金額・残高 validation と口座ステータス validation の domain 土台です。
+現時点で実装済みなのは、Go 標準ライブラリだけを使った最小 REST API サーバー、ヘルスチェック、金額・残高 validation、口座ステータス validation、取引種別 validation と取引種別に応じた残高反映 helper の domain 土台です。
 
 - `GET /healthz`: サーバーの最小ヘルスチェックとして `{"status":"ok"}` を返します。
-- `internal/domain`: JPY の整数最小通貨単位を `int64` で扱う金額・残高 helper と、口座ステータス helper を提供します。金額・残高では、正の取引金額、0 以上の残高、開始残高と取引金額を再検証する残高加算、開始残高と取引金額を再検証して残高不足を拒否する減算に加え、constructor を経由しない値を service / repository / DB insert 境界で再検証する `Validate()` method を利用できます。口座ステータスでは、MVP の `active` / `suspended` / `closed` を検証し、残高変更系操作へ進めるのは `active` のみであることを `EnsureAccountCanTransact` で確認できます。
+- `internal/domain`: JPY の整数最小通貨単位を `int64` で扱う金額・残高 helper、口座ステータス helper、取引種別 helper を提供します。金額・残高では、正の取引金額、0 以上の残高、開始残高と取引金額を再検証する残高加算、開始残高と取引金額を再検証して残高不足を拒否する減算に加え、constructor を経由しない値を service / repository / DB insert 境界で再検証する `Validate()` method を利用できます。口座ステータスでは、MVP の `active` / `suspended` / `closed` を検証し、残高変更系操作へ進めるのは `active` のみであることを `EnsureAccountCanTransact` で確認できます。取引種別では、MVP の `deposit` / `withdrawal` / `transfer_debit` / `transfer_credit` を検証し、`ApplyTransaction` で取引種別に応じた取引後残高を計算できます。`deposit` と `transfer_credit` は残高を増やし、`withdrawal` と `transfer_debit` は残高を減らします。`reversal` は取消仕様が未確定のため valid type には含めていません。
 - 外部ライブラリ、DB 接続、認証、業務 API はまだ導入していません。
 
 ## 実行方法
@@ -53,8 +53,9 @@ go test ./...
 
 - 顧客登録
 - 口座作成
-- 入金、出金、振込
+- 入金、出金、振込の業務 API
 - 残高照会、取引履歴照会
+- 取引履歴の永続化、transaction row の作成、`balance_after` の DB 保存
 - PostgreSQL 接続、DB schema、migration、transaction 処理
 - 認証、認可、ユーザー登録、パスワードハッシュ、セッション、トークン、CSRF、ログアウト
 - 監査ログ
