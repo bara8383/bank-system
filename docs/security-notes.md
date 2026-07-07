@@ -23,7 +23,9 @@
 - 重要操作の成功と失敗を監査ログに残す。
 - 監査ログには `actor_user_id`、`action_type`、`target_type`、`target_id`、`result`、`failure_reason`、`occurred_at`、`ip_address`、`user_agent` を含める。
 - `failure_reason` は利用者向け詳細ではなく、運用調査に必要な安全な分類または短い理由にする。
-- domain error に由来する `failure_reason` は、`internal/domain` の safe failure category helper が返す固定分類値を使う。helper は raw request body、password、token、secret、CSRF token、セッションID、未加工の自由入力値を保存・返却する用途ではない。
+- domain error に由来する `failure_reason` は、`internal/domain` の safe failure category helper が返す固定分類値を使う。既知 domain error は `invalid_amount` などの固定分類にし、未知の non-nil error は raw error message ではなく `internal_error` のような固定分類へ寄せる。
+- `internal_error` は調査用の相関 ID や安全な構造化ログ分類と組み合わせる候補であり、DB 接続文字列、SQL、stack trace、request body、password、token、secret、CSRF token、セッションID、個人情報、未加工の自由入力値を保存・返却する用途ではない。
+- public API response 用の code / message / HTTP status は別途設計する。監査ログ用の `failure_reason` をそのまま利用者向け message として扱わない。
 - リクエスト同一性の調査が必要な場合は、raw request body ではなく request body hash を保存する設計案にする。
 - 残高変更の理由は取引履歴に残す。
 - 監査ログと取引履歴は削除せず、追記型を基本にする。

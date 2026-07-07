@@ -10,14 +10,16 @@ const (
 	FailureReasonInvalidAccountStatus   FailureReason = "invalid_account_status"
 	FailureReasonAccountNotActive       FailureReason = "account_not_active"
 	FailureReasonInvalidTransactionType FailureReason = "invalid_transaction_type"
+	FailureReasonInternalError          FailureReason = "internal_error"
 )
 
 var ErrInvalidFailureReason = errors.New("invalid failure reason")
 
-// FailureReason is a stable, safe category for domain failures that may be
-// reused by API responses, audit failure_reason fields, and structured logs.
-// It must not contain raw request bodies, secrets, tokens, session IDs, or
-// unvalidated free-form input.
+// FailureReason is a stable, safe category for domain and audit failures that
+// may be reused by audit failure_reason fields and safe structured logs. Public
+// API response codes and HTTP status mapping are intentionally not finalized by
+// this domain helper. FailureReason must not contain raw request bodies,
+// secrets, tokens, session IDs, or unvalidated free-form input.
 type FailureReason string
 
 // Validate confirms the failure reason is one of the MVP-supported safe
@@ -31,7 +33,8 @@ func (r FailureReason) Validate() error {
 		FailureReasonBalanceOverflow,
 		FailureReasonInvalidAccountStatus,
 		FailureReasonAccountNotActive,
-		FailureReasonInvalidTransactionType:
+		FailureReasonInvalidTransactionType,
+		FailureReasonInternalError:
 		return nil
 	default:
 		return ErrInvalidFailureReason
@@ -60,4 +63,22 @@ func FailureReasonFromError(err error) (FailureReason, bool) {
 	default:
 		return "", false
 	}
+}
+
+// SafeFailureReasonFromError maps known domain sentinel errors to stable, safe
+// failure categories and falls back to internal_error for unknown non-nil
+// errors. This helper is intended for audit failure_reason fields and safe
+// structured logs so callers do not persist or expose err.Error(), raw request
+// bodies, secrets, or other sensitive details. It is not the final public API
+// response body or HTTP status code contract.
+func SafeFailureReasonFromError(err error) (FailureReason, bool) {
+	if reason, ok := FailureReasonFromError(err); ok {
+		return reason, true
+	}
+
+	if err == nil {
+		return "", false
+	}
+
+	return FailureReasonInternalError, true
 }
