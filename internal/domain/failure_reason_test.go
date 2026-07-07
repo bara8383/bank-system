@@ -15,6 +15,7 @@ func TestFailureReasonValidateAcceptsSupportedReasons(t *testing.T) {
 		"invalid account status":   FailureReasonInvalidAccountStatus,
 		"account not active":       FailureReasonAccountNotActive,
 		"invalid transaction type": FailureReasonInvalidTransactionType,
+		"internal error":           FailureReasonInternalError,
 	}
 
 	for name, reason := range testCases {
@@ -124,5 +125,68 @@ func TestFailureReasonFromErrorLeavesNilAndUnknownErrorsUnclassified(t *testing.
 				t.Fatalf("expected empty failure reason, got %q", got)
 			}
 		})
+	}
+}
+
+func TestSafeFailureReasonFromErrorMapsKnownDomainErrors(t *testing.T) {
+	testCases := map[string]struct {
+		err  error
+		want FailureReason
+	}{
+		"known domain error": {
+			err:  ErrInsufficientBalance,
+			want: FailureReasonInsufficientBalance,
+		},
+		"wrapped domain error": {
+			err:  fmt.Errorf("domain validation failed: %w", ErrInvalidTransactionType),
+			want: FailureReasonInvalidTransactionType,
+		},
+		"joined known and unknown error": {
+			err:  errors.Join(ErrAccountNotActive, errors.New("database connection refused")),
+			want: FailureReasonAccountNotActive,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, ok := SafeFailureReasonFromError(tc.err)
+			if !ok {
+				t.Fatalf("expected %v to be mapped", tc.err)
+			}
+			if got != tc.want {
+				t.Fatalf("expected failure reason %q, got %q", tc.want, got)
+			}
+			if err := got.Validate(); err != nil {
+				t.Fatalf("expected mapped failure reason %q to be valid, got error: %v", got, err)
+			}
+		})
+	}
+}
+
+func TestSafeFailureReasonFromErrorLeavesNilUnclassified(t *testing.T) {
+	got, ok := SafeFailureReasonFromError(nil)
+	if ok {
+		t.Fatal("expected nil error to be unclassified")
+	}
+	if got != "" {
+		t.Fatalf("expected empty failure reason, got %q", got)
+	}
+}
+
+func TestSafeFailureReasonFromErrorMapsUnknownErrorsToInternalError(t *testing.T) {
+	unknownErr := errors.New("database password=super-secret connection refused")
+
+	got, ok := SafeFailureReasonFromError(unknownErr)
+	if !ok {
+		t.Fatal("expected unknown non-nil error to be classified")
+	}
+	if got != FailureReasonInternalError {
+		t.Fatalf("expected failure reason %q, got %q", FailureReasonInternalError, got)
+	}
+	if got == FailureReason(unknownErr.Error()) {
+		t.Fatal("expected raw error message not to be returned as failure reason")
+	}
+	if err := got.Validate(); err != nil {
+		t.Fatalf("expected internal error failure reason to be valid, got error: %v", err)
 	}
 }
